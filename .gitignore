@@ -14,3 +14,5 @@ bin/
 tmp/
 vendor/
 gin-bin
+goless
+

@@ -9,5 +9,7 @@
             "server": "localhost",
             "username": "root"
         }
-    ]
+    ],
+    "go.testFlags": ["-v"]
+
 }

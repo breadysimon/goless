@@ -26,11 +26,12 @@ func (hook ContextHook) Fire(entry *logrus.Entry) error {
 
 func GetLogger() *Logger {
 	l := logrus.New()
+
 	l.SetLevel(logrus.DebugLevel)
 	l.AddHook(ContextHook{})
 	l.Formatter = &easy.Formatter{
 		TimestampFormat: "2006-01-02 15:04:05",
-		LogFormat:       "%time% [%lvl%] %func%.%line% %msg%\n",
+		LogFormat:       "%time% [%lvl%] %func%(%line%) %msg%\n",
 	}
 	return (*Logger)(l)
 }

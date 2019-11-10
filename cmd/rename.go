@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/breadysimon/goless/pic"
+	"github.com/breadysimon/goless/file"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +31,7 @@ var renameCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
-		count := pic.RenamePictures(args[0])
+		count := file.RenamePictures(args[0])
 		elapsed := time.Now().Sub(start)
 		fmt.Printf("Renamed %d files in %fs\n", count, elapsed.Seconds())
 	},

@@ -1,4 +1,4 @@
-package pic
+package file
 
 import (
 	"testing"

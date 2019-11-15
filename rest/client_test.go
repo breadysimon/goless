@@ -1,13 +1,12 @@
 package rest
 
 import (
-	"context"
 	"fmt"
-	"net/http"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/breadysimon/goless/reflection"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,10 +14,11 @@ import (
 type Template struct {
 	ID   int    `gorm:"column:id;AUTO_INCREMENT;PRIMARY_KEY" json:"id"`
 	Name string `gorm:"column:name;type:varchar(50);unique_index" json:"name"`
+	XXX  string `json:"xxx"`
 }
 
 func TestDataOps(t *testing.T) {
-	SetupServer()
+	StartServer()
 	defer TearDownServer()
 	time.Sleep(1 * time.Second)
 	api := NewClient("http://127.0.0.1:8881", "/api/v1/", "admin", "admin")
@@ -39,27 +39,41 @@ func TestDataOps(t *testing.T) {
 	fmt.Println(tmp)
 }
 
+func TestFindSingle(t *testing.T) {
+	StartServer()
+	defer TearDownServer()
+	time.Sleep(1 * time.Second)
+	api := NewClient("http://127.0.0.1:8881", "/api/v1/", "admin", "admin")
+
+	tmp := Template{Name: "ttt1"}
+	assert.Nil(t, api.
+		Create(&Template{Name: "ttt1", XXX: "ff"}).
+		Find(&tmp).peekResult().
+		Error())
+	assert.Equal(t, "ff", tmp.XXX)
+}
 func TestTypeOf(t *testing.T) {
 	var a interface{}
 
 	c := Template{ID: 123}
 	a = &c
-	assert.Equal(t, "credentials", guessResourceName(a))
-	id := GetId(a).Int()
+	assert.Equal(t, "templates", generateResourceName(a))
+	id := reflection.GetId(a).Int()
 	fmt.Println(id)
 	l := []Template{}
 	a = &l
 	fmt.Println(reflect.TypeOf(a))
 }
 
-var svr *http.Server
+var svr *RestApi
 
-func SetupServer() {
+func StartServer() {
 	svr = NewRestApi(&T{}, &Template{}).
 		Connect("sqlite3", ":memory:").
-		Serve("", 8881, "/api/v1/", true)
+		Server("", 8881, "/api/v1/", true).
+		Start()
 
 }
 func TearDownServer() {
-	svr.Shutdown(context.TODO())
+	svr.Shutdown()
 }

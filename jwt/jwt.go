@@ -20,7 +20,8 @@ var identityKey = "id"
 
 // User demo
 type User struct {
-	UserId string
+	UserId   string
+	UserName string
 }
 
 func InitAuth(r *gin.Engine) (authMiddleware *jwt.GinJWTMiddleware) {
@@ -35,6 +36,7 @@ func InitAuth(r *gin.Engine) (authMiddleware *jwt.GinJWTMiddleware) {
 			if v, ok := data.(*User); ok {
 				return jwt.MapClaims{
 					identityKey: v.UserId,
+					"userName":  v.UserName,
 				}
 			}
 			return jwt.MapClaims{}
@@ -42,7 +44,8 @@ func InitAuth(r *gin.Engine) (authMiddleware *jwt.GinJWTMiddleware) {
 		IdentityHandler: func(c *gin.Context) interface{} {
 			claims := jwt.ExtractClaims(c)
 			return &User{
-				UserId: claims[identityKey].(string),
+				UserId:   claims[identityKey].(string),
+				UserName: claims["userName"].(string),
 			}
 		},
 		Authenticator: func(c *gin.Context) (interface{}, error) {
@@ -105,10 +108,10 @@ func GetJwtInfo(c *gin.Context) (id string, user *User) {
 
 func checkAuthentication(userID, password string) (*User, error) {
 	// TODO: replace mock
-	log.Debug(userID, password)
 	if (userID == "admin" && password == "admin") || (userID == "test" && password == "test") {
 		return &User{
-			UserId: userID,
+			UserId:   userID,
+			UserName: "管理员",
 		}, nil
 	}
 	return nil, jwt.ErrFailedAuthentication

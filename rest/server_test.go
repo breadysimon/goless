@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/breadysimon/goless/reflection"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -26,26 +27,26 @@ type TX struct {
 	XXX  string `json:"memo" rest:"search"`
 }
 
-var sss *RestApi
 var r *gin.Engine
 
 type kv map[string]string
 
 func TestReflect(t *testing.T) {
-	f := getSearchableFields(&T{Name: "123", Memo: "234"})
+	sss := Setup()
+	f := reflection.GetSearchableFieldNames(&T{Name: "123", Memo: "234"})
 	fmt.Println(f)
 
 	sss.db.Create(&T{Name: "123", Memo: "124"})
 	sss.db.Create(&T{Name: "1231"})
 
-	xx := makeSlice(&T{})
+	xx := reflection.MakeSlice(&T{})
 	sss.db.Find(xx)
 	fmt.Println(xx)
 
 }
 
 func TestApi(t *testing.T) {
-
+	sss := Setup()
 	{
 		// create item
 		url := "/api/v1/ts"
@@ -153,7 +154,7 @@ func TestApi(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Should get right status code.")
 	}
 }
-func TestMain(m *testing.M) {
+func Setup() *RestApi {
 
 	r = gin.New()
 	{
@@ -169,9 +170,7 @@ func TestMain(m *testing.M) {
 		config.AddExposeHeaders("Content-Range")
 		r.Use(cors.New(config))
 	}
-	{
-		sss = NewRestApi(&T{}, &TX{}).
-			Connect("sqlite3", ":memory:").
-			CreateEndpoints(r, "/api/v1", false)
-	}
+	return NewRestApi(&T{}, &TX{}).
+		Connect("sqlite3", ":memory:").
+		CreateEndpoints(r, "/api/v1", false)
 }

@@ -1,11 +1,16 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"reflect"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/breadysimon/goless/jwt"
+	"github.com/gertd/go-pluralize"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -15,10 +20,11 @@ import (
 )
 
 type RestApi struct {
-	login  bool
+	Login  bool
 	err    error
 	models []interface{}
 	db     *gorm.DB
+	svr    *http.Server
 }
 
 func NewRestApi(t ...interface{}) *RestApi {
@@ -53,20 +59,20 @@ func (s *RestApi) CloseDb() {
 
 func (s *RestApi) makeRouters(apigrp *gin.RouterGroup, t interface{}) {
 
-	name := guessResourceName(t)
+	name := generateResourceName(t)
 
-	apigrp.GET("/"+name, ListHandler(s.db, t))
+	apigrp.GET("/"+name, ListHandler(s, t))
 	apigrp.GET("/"+name+"/:id", ReadHandler(s.db, t))
-	apigrp.POST("/"+name, CreateHandler(s.db, t))
-	apigrp.PUT("/"+name+"/:id", UpdateHandler(s.db, t))
+	apigrp.POST("/"+name, CreateHandler(s, t))
+	apigrp.PUT("/"+name+"/:id", UpdateHandler(s, t))
 	apigrp.DELETE("/"+name+"/:id", DeleteHandler(s.db, t))
 
 }
 
 func (s *RestApi) CreateEndpoints(r *gin.Engine, grp string, login bool) *RestApi {
 	apiGrp := r.Group(grp)
-
-	if login {
+	s.Login = login
+	if s.Login {
 		authMiddleware := jwt.InitAuth(r)
 		apiGrp.Use(authMiddleware.MiddlewareFunc())
 		r.NoRoute(authMiddleware.MiddlewareFunc(), func(c *gin.Context) {
@@ -82,7 +88,7 @@ func (s *RestApi) CreateEndpoints(r *gin.Engine, grp string, login bool) *RestAp
 	return s
 }
 
-func (s *RestApi) Serve(addr string, port int, apiRoot string, login bool) *http.Server {
+func (s *RestApi) Server(addr string, port int, apiRoot string, login bool) *RestApi {
 	r := gin.New()
 	{
 		r.Use(gin.Logger())
@@ -101,19 +107,51 @@ func (s *RestApi) Serve(addr string, port int, apiRoot string, login bool) *http
 
 	s.CreateEndpoints(r, apiRoot, login)
 
-	svr := &http.Server{
+	s.svr = &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", addr, port),
 		Handler:      r,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
 
-	log.Infof("Start server. Listening at :%d", port)
+	return s
+}
 
-	go func() {
-		if err := svr.ListenAndServe(); err != http.ErrServerClosed {
+func (s *RestApi) Start() *RestApi {
+	if s.err == nil {
+		// async
+		go func() {
+			log.Infof("Start server. %s", s.svr.Addr)
+
+			if err := s.svr.ListenAndServe(); err != http.ErrServerClosed {
+				log.Fatal(err)
+			}
+		}()
+	}
+	return s
+}
+func (s *RestApi) Shutdown() *RestApi {
+	if s.svr != nil {
+		s.svr.Shutdown(context.TODO())
+	}
+	return s
+}
+func (s *RestApi) Run() *RestApi {
+	if s.err == nil {
+		log.Infof("Start server. %s", s.svr.Addr)
+		if err := s.svr.ListenAndServe(); err != http.ErrServerClosed {
 			log.Fatal(err)
 		}
-	}()
-	return svr
+	}
+	return s
+}
+
+// generateResourceName generates a lower case, prual name for api url path,
+// according to name of the struct type of the object
+func generateResourceName(obj interface{}) string {
+	tp := reflect.TypeOf(obj).String()
+	reg := regexp.MustCompile(`.*\.`)
+	name := reg.ReplaceAllString(tp, "")
+	pluralize := pluralize.NewClient()
+	return strings.ToLower(pluralize.Plural(name))
 }

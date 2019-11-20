@@ -13,18 +13,6 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-func ReadHandler(db *gorm.DB, t interface{}) func(c *gin.Context) {
-	return func(c *gin.Context) {
-		m := reflection.MakeInstance(t)
-		id, _ := strconv.Atoi(c.Param("id"))
-		if err := mdlRead(db, m, id); err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-		} else {
-			c.JSON(http.StatusOK, m)
-		}
-	}
-}
-
 type ModelContext struct {
 	Login bool
 	User  *jwt.User
@@ -35,6 +23,12 @@ type CreateHandlerPreprocessor interface {
 }
 type UpdateHandlerPreprocessor interface {
 	BeforeDbUpdate(s *RestApi, c *gin.Context) error
+}
+type K8sResource interface {
+	K8sCreate() error
+	K8sRead() error
+	K8sList(o interface{}, filter map[string]interface{}) int
+	K8sDelete() error
 }
 
 func responseJson(c *gin.Context, data interface{}, err error, code int) {
@@ -47,6 +41,24 @@ func responseJson(c *gin.Context, data interface{}, err error, code int) {
 		})
 	}
 }
+
+func ReadHandler(db *gorm.DB, t interface{}) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		m := reflection.MakeInstance(t)
+		var err error
+		var code int
+		if r, ok := m.(K8sResource); ok {
+			code = 40001
+			err = r.K8sRead()
+		} else {
+			code = 40002
+			id, _ := strconv.Atoi(c.Param("id"))
+			err = mdlRead(db, m, id)
+		}
+		responseJson(c, m, err, code)
+	}
+}
+
 func CreateHandler(s *RestApi, t interface{}) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		data := reflection.MakeInstance(t)
@@ -60,8 +72,13 @@ func CreateHandler(s *RestApi, t interface{}) func(c *gin.Context) {
 		}
 
 		if err == nil {
-			code = 10003
-			err = mdlCreate(s.db, data)
+			if r, ok := data.(K8sResource); ok {
+				code = 10003
+				err = r.K8sCreate()
+			} else {
+				code = 10004
+				err = mdlCreate(s.db, data)
+			}
 		}
 		responseJson(c, data, err, code)
 	}
@@ -95,9 +112,18 @@ func DeleteHandler(db *gorm.DB, t interface{}) func(c *gin.Context) {
 		id, err := strconv.Atoi(c.Param("id"))
 		m := reflection.MakeInstance(t)
 		if err == nil {
-			reflection.SetIdInt(m, id)
-			code = 30002
-			err = mdlDelete(db, m)
+			if r, ok := t.(K8sResource); ok {
+				code = 30003
+				err = c.BindJSON(&r)
+				if err == nil {
+					code = 30004
+					err = r.K8sDelete()
+				}
+			} else {
+				reflection.SetIdInt(m, id)
+				code = 30002
+				err = mdlDelete(db, m)
+			}
 		}
 		responseJson(c, nil, err, code)
 	}
@@ -108,7 +134,13 @@ func ListHandler(s *RestApi, t interface{}) func(c *gin.Context) {
 		m := reflection.MakeInstance(t)
 		data := reflection.MakeSlice(t)
 		sort, offset, limit, filter := ParsedQuery(c)
-		n := mdlList(s.db, m, data, sort, offset, limit, filter)
+		var n int
+		if r, ok := m.(K8sResource); ok {
+			n = r.K8sList(data, filter)
+		} else {
+			n = mdlList(s.db, m, data, sort, offset, limit, filter)
+
+		}
 		c.Writer.Header().Set("Content-Range", fmt.Sprintf("%s %d-%d/%d", generateResourceName(t), offset, offset+limit-1, n))
 		c.JSON(http.StatusOK, data)
 	}

@@ -2,10 +2,10 @@ package ui
 
 import (
 	"fmt"
+	"github.com/WeiZhang555/tabwriter"
 	"os"
 	"reflect"
 	"strings"
-	"text/tabwriter"
 )
 
 func TablePrint(fields string, lst interface{}) {

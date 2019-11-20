@@ -144,9 +144,9 @@ func (c *Client) httpGet(path string, result interface{}, query ...interface{}) 
 
 	return c
 }
-func (c *Client) httpDelete(path string) *Client {
+func (c *Client) httpDelete(path string, body interface{}) *Client {
 	var e ErrorResult
-	resp, err := c.prepareRequest(nil, nil, &e).Delete(c.url + path)
+	resp, err := c.prepareRequest(nil, nil, &e).SetBody(body).Delete(c.url + path)
 
 	c.checkError(err, &e, resp, http.StatusOK)
 	return c
@@ -174,6 +174,7 @@ func (c *Client) Find(result interface{}) *Client {
 		if util.StartWith(resultType, "*[]") {
 			return c.httpGet(generateResourceName(result), result)
 		} else {
+
 			var url string
 			id := reflection.GetId(result).Int()
 			if id != 0 {
@@ -209,18 +210,20 @@ func (c *Client) findItems(obj interface{}) (lst interface{}) {
 }
 func (c *Client) Delete(obj interface{}) *Client {
 	if c.err == nil {
-		id := reflection.GetId(obj).Int()
-		if id == 0 {
-			lst := c.findItems(obj)
-			if reflection.GetSliceLen(lst) > 0 {
-				id = reflection.GetId(reflection.GetSliceItem(lst, 0)).Int()
-			} else {
-				log.Info("Not found. Nothing to do for deletion.")
-				return c
-			}
-		}
-		url := fmt.Sprintf("%s/%d", generateResourceName(obj), id)
-		return c.httpDelete(url)
+		// id := reflection.GetId(obj).Int()
+		// if id == 0 {
+		// 	lst := c.findItems(obj)
+		// 	if reflection.GetSliceLen(lst) > 0 {
+		// 		id = reflection.GetId(reflection.GetSliceItem(lst, 0)).Int()
+		// 	} else {
+		// 		log.Info("Not found. Nothing to do for deletion.")
+		// 		return c
+		// 	}
+		// }
+		// url := fmt.Sprintf("%s/%d", generateResourceName(obj), id)
+
+		path := fmt.Sprintf("%s/%d", generateResourceName(obj), reflection.GetId(obj).Int())
+		return c.httpDelete(path, obj)
 
 	}
 	return c

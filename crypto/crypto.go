@@ -6,7 +6,9 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
+	"strings"
 
 	"github.com/breadysimon/goless/logging"
 )
@@ -76,5 +78,26 @@ func decrypt(key, text []byte) (out []byte, err error) {
 			}
 		}
 	}
+	return
+}
+
+func EncryptUserPassword(key, u, p string) (secret string, err error) {
+	s := fmt.Sprintf("%s\n%s", u, p)
+	secret, err = Encrypt(key, s)
+	return
+}
+func DecryptUserPassword(key, secret string, u, p *string) (err error) {
+	var s string
+	s, err = Decrypt(key, secret)
+	if err != nil {
+		return
+	}
+
+	ss := strings.Split(s, "\n")
+	if len(ss) != 2 {
+		return fmt.Errorf("failed to parse the secret in config.")
+	}
+	*u = ss[0]
+	*p = ss[1]
 	return
 }

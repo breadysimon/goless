@@ -9,7 +9,7 @@ import (
 
 	"github.com/breadysimon/goless/logging"
 	"github.com/breadysimon/goless/reflection"
-	"github.com/breadysimon/goless/util"
+	"github.com/breadysimon/goless/text"
 	"gopkg.in/resty.v1"
 )
 
@@ -171,7 +171,7 @@ func (c *Client) Update(body interface{}) *Client {
 func (c *Client) Find(result interface{}) *Client {
 	if c.err == nil {
 		resultType := reflect.TypeOf(result).String()
-		if util.StartWith(resultType, "*[]") {
+		if text.StartWith(resultType, "*[]") {
 			return c.httpGet(generateResourceName(result), result)
 		} else {
 

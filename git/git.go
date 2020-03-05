@@ -10,7 +10,7 @@ import (
 
 	"github.com/breadysimon/goless/crypto"
 	"github.com/breadysimon/goless/logging"
-	"github.com/breadysimon/goless/util"
+	"github.com/breadysimon/goless/text"
 	gogit "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
@@ -54,7 +54,7 @@ func GetChanges(repo *gogit.Repository, hashOld, hashNew plumbing.Hash) *object.
 
 func CloneGitRepository(gitUrl string, key transport.AuthMethod, depth int) (r *gogit.Repository, err error) {
 	var auth transport.AuthMethod
-	if key == nil && util.StartWith(gitUrl, "ssh://") {
+	if key == nil && text.StartWith(gitUrl, "ssh://") {
 		var me *user.User
 		if me, err = user.Current(); err == nil {
 			auth, err = ssh.NewPublicKeysFromFile("git", filepath.Join(me.HomeDir, ".ssh/id_rsa"), "")

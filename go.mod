@@ -3,8 +3,10 @@ module github.com/breadysimon/goless
 go 1.13
 
 require (
+	github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802 // indirect
 	github.com/WeiZhang555/tabwriter v0.0.0-20160126080315-b48210992586
 	github.com/appleboy/gin-jwt/v2 v2.6.2
+	github.com/gen2brain/shm v0.0.0-20200228170931-49f9650110c5 // indirect
 	github.com/gertd/go-pluralize v0.1.1
 	github.com/gin-contrib/cors v1.3.0
 	github.com/gin-gonic/gin v1.4.0
@@ -12,6 +14,8 @@ require (
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/jinzhu/gorm v1.9.11
 	github.com/json-iterator/go v1.1.8 // indirect
+	github.com/kbinani/screenshot v0.0.0-20191211154542-3a185f1ce18f
+	github.com/lxn/win v0.0.0-20191128105842-2da648fda5b4 // indirect
 	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/modood/table v0.0.0-20181112072225-499dc7fba710
